@@ -1,0 +1,22 @@
+
+
+1. Using umc to explore the model, assuming filename.umc
+
+> ./umc filename.umc
+
+2. property checking
+
+We can verify properties based on "observable" attributes, declared in
+the section Abstractions of the model.
+
+For example
+a. AF FINAL
+ --> check if the model contains a halting state
+
+b. AF (FINAL and not has_attr(*,v))
+
+---> all component do not have attribute attr with value v
+
+For the graph colouring example, please take a look at color.properties.txt file
+
+For use of UMC, please consult the website: http://fmtlab.isti.cnr.it/umc/V4.8/umc.html
