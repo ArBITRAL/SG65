@@ -11,6 +11,7 @@ We start from a given abc specification, from which
 
 The translation tools accept input files written in the following format:
 
+```scala
 component Type
    attributes:  a1, a2, ...
    observables: % list of attribute names that will be exposed as state labels
@@ -31,5 +32,6 @@ end
 C1 : Type (a1 -> v1, a2 -> v2, ...)
 ...
 Cn : Type (...)
+```
 
 A specification can have several types, declared in a similar fashion.
