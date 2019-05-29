@@ -5,7 +5,7 @@ The folder contains the translator which takes an abc specification as input and
 
 # Translation
 
-Assume your abc spec has name of "file.abc"
+Assume your abc spec has the name of "file.abc"
 
 The command
 
@@ -17,4 +17,4 @@ will produce one or more Erlang modules, depending on how many component types a
 
 The generated *.erl files are meant to be complied and executed by ABEL, provided in another folder
 
-For the latest ABEL impelemntation, please consult https://github.com/ArBITRAL/ABEL
+For the latest ABEL impelementation, please consult https://github.com/ArBITRAL/ABEL

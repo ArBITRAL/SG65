@@ -1,10 +1,20 @@
 * This repository contains models, code and tools for AbC developments used in the paper
 
-1. The two translators are provided in abc2umc and abc2abel, respectively
+** The two translators are provided in abc2umc and abc2abel, respectively
 
-2. The two execution environments are provided in UMC and ABEL, repspectively
+** The two execution environments are provided in UMC and ABEL, repspectively
 
-3. The abc specifications can be found in the examples folder.
+** The abc specifications can be found in the examples folder.
 
+* In our approach, we start from abc specifications
 
-For more updated instructions, please visit https://github.com/ArBITRAL/SG65
+abc2umc generates the umc model for formal verification
+
+abc2abel generates erlang modules for actual executions
+
+# Requirements
+
+In order to compile:
+
+Erlang/OTP >= 20
+m4 macro
