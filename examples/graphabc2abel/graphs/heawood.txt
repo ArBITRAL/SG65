@@ -1,0 +1,26 @@
+c FILE: heawood.txt
+c SOURCE: Headwood graph
+c DESCRIPTION: Graph based on https://hog.grinvin.org/ViewGraphInfo.action?id=1154.
+c              Triangle free (clique number 2)
+p edge 14 21
+e 1 2
+e 1 14
+e 1 6
+e 2 3
+e 2 11
+e 3 4
+e 3 8
+e 4 5
+e 4 13
+e 5 6
+e 5 10
+e 6 7
+e 7 8
+e 7 12
+e 8 9
+e 9 10
+e 9 14
+e 10 11
+e 11 12
+e 12 13
+e 13 14

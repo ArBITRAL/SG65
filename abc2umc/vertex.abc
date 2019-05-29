@@ -1,0 +1,37 @@
+component Vertex
+	  attributes: id, constraints, used, counter, send, round, done, nbr, assigned, color, all
+	  observables: color, assigned
+	  behaviour:
+	  let {
+	      %% correct spec
+	      F := <send = tt and assigned = ff>('tryc', (this.all -- this.used).min, this.round)@(this.id in nbr).[send := ff, color := (all--used).min]F
+
+	      %% bug when there is a connected graph
+	      %F := <send = tt and assigned = ff>()@(false).[color := (all--used).min]('tryc', this.color, this.round)@(this.id in nbr).[send := ff]F
+
+	      T := (x = 'tryc' and this.id > id and this.round = z)(x,y,z).[counter := counter + 1]T
+	          +
+		  (x = 'tryc' and this.id < id and this.round = z)(x,y,z).[counter := (counter + 1), constraints := constraints ++ {y}]T
+		  +
+		  (x = 'tryc' and this.id > id and this.round < z)(x,y,z).[round := z, send := tt, counter := 1, constraints := {}]T
+		  +
+		  (x = 'tryc' and this.id < id and this.round < z)(x,y,z).[round := z, send := tt, counter := 1, constraints := {y}]T
+
+	     D := (x = 'donec' and this.round >= z)(x,y,z).[done := done + 1, used := used ++ {y}]D
+		  +
+		  (x = 'donec' and this.round < z)(x,y,z).[round := z, done := done + 1, send := tt, counter := 0, used := used ++ {y}, constraints := {}]D
+
+	     A := <(|nbr| = counter + done) and (color > 0) and (color notin constraints ++ used)>('donec', this.color, this.round + 1)@(id in this.nbr).[assigned := tt]nil
+	   }
+	   init  F | T | D | A
+end
+
+
+%% input different graphs by specifying component ids (id) and the set of neighbor (nbr)
+
+%% all is the set of all colours, a helper attribute
+
+C1: Vertex (id -> 1, color -> 0, round -> 0, done -> 0, send -> tt, assigned -> ff, used -> {}, counter -> 0, constraints -> {}, nbr -> {4}, all -> {1,2,3,4})
+C2: Vertex (id -> 2, color -> 0, round -> 0, done -> 0, send -> tt, assigned -> ff, used -> {}, counter -> 0, constraints -> {}, nbr -> {4}, all -> {1,2,3,4})
+C3: Vertex (id -> 3, color -> 0, round -> 0, done -> 0, send -> tt, assigned -> ff, used -> {}, counter -> 0, constraints -> {}, nbr -> {}, all -> {1,2,3,4})
+C4: Vertex (id -> 4, color -> 0, round -> 0, done -> 0, send -> tt, assigned -> ff, used -> {}, counter -> 0, constraints -> {}, nbr -> {1,2}, all -> {1,2,3,4})
