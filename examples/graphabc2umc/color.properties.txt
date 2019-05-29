@@ -1,22 +1,5 @@
--- grapdb 5
---
-The Formula: "A[true {not start} W {start} AF FINAL]"
-is: TRUE
-(states generated= 2859341, computations fragments generated= 5718682, evaluation time= 700.695 sec.)
-
-The Formula: "A[true {not start} W {start} AF (FINAL and not has_assigned(*,false))]"
-is: TRUE
-(states generated= 2859341, computations fragments generated= 8646526, evaluation time= 669.854 sec.)
-
--- remove dead vars
-
-The Formula: "A[true {not start} W {start} AF (FINAL and not not_sound)]"
-is: TRUE
-(states generated= 2859341, computations fragments generated= 8646526, evaluation time= 694.288 sec.)
-
-
-The Formula: "A[true {not start} W {start} AF (FINAL and not bad_alg)]"
-is: TRUE
-(states generated= 2859341, computations fragments generated= 8646526, evaluation time= 714.415 sec.)
-
+G1. A[true {not start} W {start} AF FINAL]
+G2. A[true {not start} W {start} AF (FINAL and not has_colour(*,0) and not has_assigned(*,false))]
+G3. A[true {not start} W {start} AF (FINAL and not not_sound)]
+G4. A[true {not start} W {start} AF (FINAL and not bad_alg)]
 
