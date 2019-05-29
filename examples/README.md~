@@ -1,0 +1,5 @@
+In our approach, we start from abc specifications
+
+abc2umc generates the umc model for formal verification
+
+abc2abel generates erlang modules for actual executions
