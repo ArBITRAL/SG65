@@ -5,10 +5,12 @@
 	 build_rpred/5,
 	 build_pc_guard/1,
 	 build_pc_list/2,
+	 build_pc_list/1,
 	 build_outE/3]).
 
 %% build updates
 build_update(Assignments,I,B) ->
+    catch ets:delete(temp_set),
     ets:new(temp_set, [named_table]),
     build_update(Assignments,I,B,[]).
 
@@ -18,7 +20,7 @@ build_update(Assignments,I,B) ->
 %%     build_update(Assignments,I,V,B,[]).
 
 build_update([],_,_,S) ->
-    ets:delete(temp_set),
+    catch ets:delete(temp_set),
     lists:reverse(S);
 build_update([H|T], I, B, S) ->
 %    io:format("Build update for ~p~n with Vars ~p Bound ~p args = ~p) ~n",[H,V,B,A]),
@@ -26,7 +28,7 @@ build_update([H|T], I, B, S) ->
 
 build_apred(Pred, I, B) ->
 %   io:format("build aware pred ~p with i ~p, b ~p ~n",[Pred,I,B]),
-    List = "("++evala(Pred, I, B)++")".
+    "("++evala(Pred, I, B)++")".
 
 %% this functions returns code for subpredicates if there any (to deal with membership predicate) and code for the input predicate Pred
 build_spred(Pred, I, B) ->
@@ -76,7 +78,7 @@ evalu(empty_vector, _,_) -> "[]";
 evalu(empty_set, _,_) -> "[]";
 evalu({const,C}, _,_) -> C;
 evalu({minusconst,C}, _,_) -> "-" ++ C;
-evalu([H|T] = L,I,B) -> %really bracket of a list
+evalu([_|_T] = L,I,B) -> %really bracket of a list
     string:join([evalu(X,I, B) || X <- L],",");
 evalu({'+',L,R}, I, B) -> evalu(L,I,B) ++ "+" ++ evalu(R,I,B);
 evalu({'-',L,R}, I, B) -> evalu(L,I,B) ++ "-" ++ evalu(R,I,B);
@@ -132,14 +134,6 @@ evalu({union, L, R}, I, B) ->
     evalu(L, I, B) ++ " or " ++ evalu(R, I, B);
 evalu({negation, R}, I, B) ->
     " not " ++ evalu(R, I, B);
-evalu({ismember, L, R}, I, B) ->
-    L1 = evalu(L, I, B),
-%    io:format("lef side ~p~n",[L]),
-    R1 = evalu(R, I, B),
-    Temp = [L1 ++ "=" ++ R1 ++"["++integer_to_list(Int)++"]" || Int <- lists:seq(0,7)],
-    Member = "(false or " ++ string:join(Temp, " or ") ++ ")";
-evalu({notmember, L, R}, I, B) ->
-    "(not" ++ evalu({ismember, L, R}, I, B) ++ ")";
 evalu({var,Name}, _, B) ->
     I1 = proplists:get_value(Name,B),
     if is_integer(I1) -> "msg["++integer_to_list(I1)++"]";
@@ -216,59 +210,59 @@ evala({var,Name}, _, B) ->
        true  -> I1
     end.
 
-evala({parenthesis,P},I, V,B) ->
-    "(" ++ evala(P,I, V,B) ++ ")";
-evala({bracket,E}, I, V,B) ->
-    "[" ++ evala(E,I, V,B) ++ "]";
-evala({bracket2,E}, I, V,B) ->  %set as vector
-    "[" ++ evala(E,I, V,B) ++ "]";
-evala({head,Name}, I, V,B) -> evala(Name,I,V,B) ++ ".head";
-evala({tail,Name}, I, V,B) -> evala(Name,I,V,B) ++ ".tail";
-evala({selector,List,Index}, I,V,B) -> evala(List,I,V,B) ++ "[" ++ evala(Index,I,V,B) ++ "]";
-evala("true", _,_,_) -> "true";
-evala("false", _,_,_) -> "false";
-evala({self,Att}, I, V,B) ->
-    Att ++ "[$1]";
-evala({att,Att},_, _,_) -> Att ++ "[j]";
-evala({const,C},_, _,_) -> C;
-evala({minusconst,C}, _,_,_) -> "-" ++ C;
-evala({'+',L,R}, I, V, B) -> evala(L,I,V,B) ++ "+" ++ evala(R,I,V,B);
-evala({'*',L,R}, I, V, B) -> evala(L,I,V,B) ++ "*" ++ evala(R,I,V,B);
-evala([],_,_,_) -> "[]";
-evala({param,T}, I,_, B) ->
-    "bound[$1]" ++ "[" ++ integer_to_list(I) ++ "][" ++ integer_to_list(proplists:get_value(T,B)) ++ "]";
-evala({token,T}, _,_,_) ->
-    L = get(token),
-    put(token, L#{T => T}),
-    T;
-evala({concat,L,R}, I, V,B) ->
-    evala(L,I,V,B) ++ "+"  ++ evala(R,I,V,B);
-evala({eq, L, R}, I, V,B) ->
-    evala(L, I, V,B) ++ " = " ++ evala(R, I, V,B);
-evala({diff, L, R}, I, V,B) ->
-    evala(L, I, V,B) ++ " != " ++ evala(R, I, V,B);
-evala({ge, L, R}, I, V,B) ->
-    evala(L, I, V,B) ++ " > " ++ evala(R, I, V,B);
-evala({geq, L, R}, I, V,B) ->
-    evala(L, I, V,B) ++ " >= " ++ evala(R, I, V,B);
-evala({le, L, R}, I, V,B) ->
-    evala(L, I, V,B) ++ " < " ++ evala(R, I, V,B);
-evala({intersect, L, R}, I, V,B) ->
-    evala(L, I, V,B) ++ " and " ++ evala(R, I, V,B);
-evala({union, L, R}, I, V,B) ->
-    evala(L, I, V,B) ++ " or " ++ evala(R, I, V,B);
-evala({negation, R}, I, V,B) ->
-    " not " ++ evala(R, I, V,B);
-evala({var,Name}, _, V,B) ->
-    I1 = proplists:get_value(Name,V,B),
-    if is_integer(I1) -> "msg["++integer_to_list(I1)++"]";
-       true  -> I1
-    end;
-evala({ismember, L, R}, I, V,B) ->
-    L1 = evala(L, I, V,B),
-    R1 = evala(R, I, V,B),
-    Temp = [L1 ++ "=" ++R1++"["++integer_to_list(Int)++"]" || Int <- lists:seq(0,7)],
-    Member = "(" ++ string:join(Temp, " and ") ++ ")".
+%% evala({parenthesis,P},I, V,B) ->
+%%     "(" ++ evala(P,I, V,B) ++ ")";
+%% evala({bracket,E}, I, V,B) ->
+%%     "[" ++ evala(E,I, V,B) ++ "]";
+%% evala({bracket2,E}, I, V,B) ->  %set as vector
+%%     "[" ++ evala(E,I, V,B) ++ "]";
+%% evala({head,Name}, I, V,B) -> evala(Name,I,V,B) ++ ".head";
+%% evala({tail,Name}, I, V,B) -> evala(Name,I,V,B) ++ ".tail";
+%% evala({selector,List,Index}, I,V,B) -> evala(List,I,V,B) ++ "[" ++ evala(Index,I,V,B) ++ "]";
+%% evala("true", _,_,_) -> "true";
+%% evala("false", _,_,_) -> "false";
+%% evala({self,Att}, I, V,B) ->
+%%     Att ++ "[$1]";
+%% evala({att,Att},_, _,_) -> Att ++ "[j]";
+%% evala({const,C},_, _,_) -> C;
+%% evala({minusconst,C}, _,_,_) -> "-" ++ C;
+%% evala({'+',L,R}, I, V, B) -> evala(L,I,V,B) ++ "+" ++ evala(R,I,V,B);
+%% evala({'*',L,R}, I, V, B) -> evala(L,I,V,B) ++ "*" ++ evala(R,I,V,B);
+%% evala([],_,_,_) -> "[]";
+%% evala({param,T}, I,_, B) ->
+%%     "bound[$1]" ++ "[" ++ integer_to_list(I) ++ "][" ++ integer_to_list(proplists:get_value(T,B)) ++ "]";
+%% evala({token,T}, _,_,_) ->
+%%     L = get(token),
+%%     put(token, L#{T => T}),
+%%     T;
+%% evala({concat,L,R}, I, V,B) ->
+%%     evala(L,I,V,B) ++ "+"  ++ evala(R,I,V,B);
+%% evala({eq, L, R}, I, V,B) ->
+%%     evala(L, I, V,B) ++ " = " ++ evala(R, I, V,B);
+%% evala({diff, L, R}, I, V,B) ->
+%%     evala(L, I, V,B) ++ " != " ++ evala(R, I, V,B);
+%% evala({ge, L, R}, I, V,B) ->
+%%     evala(L, I, V,B) ++ " > " ++ evala(R, I, V,B);
+%% evala({geq, L, R}, I, V,B) ->
+%%     evala(L, I, V,B) ++ " >= " ++ evala(R, I, V,B);
+%% evala({le, L, R}, I, V,B) ->
+%%     evala(L, I, V,B) ++ " < " ++ evala(R, I, V,B);
+%% evala({intersect, L, R}, I, V,B) ->
+%%     evala(L, I, V,B) ++ " and " ++ evala(R, I, V,B);
+%% evala({union, L, R}, I, V,B) ->
+%%     evala(L, I, V,B) ++ " or " ++ evala(R, I, V,B);
+%% evala({negation, R}, I, V,B) ->
+%%     " not " ++ evala(R, I, V,B);
+%% evala({var,Name}, _, V,B) ->
+%%     I1 = proplists:get_value(Name,V,B),
+%%     if is_integer(I1) -> "msg["++integer_to_list(I1)++"]";
+%%        true  -> I1
+%%     end;
+%% evala({ismember, L, R}, I, V,B) ->
+%%     L1 = evala(L, I, V,B),
+%%     R1 = evala(R, I, V,B),
+%%     Temp = [L1 ++ "=" ++R1++"["++integer_to_list(Int)++"]" || Int <- lists:seq(0,7)],
+%%     Member = "(" ++ string:join(Temp, " and ") ++ ")".
 
 
 build_pc_guard({[],{Pcname, Pinstance, Value}}) ->
@@ -297,10 +291,10 @@ build_pc_list([H|T],L) ->
     String = "[" ++ string:join(S, ",") ++ "]",
     build_pc_list(T,[String | L]).
 
-build_choice_list(N) ->
-    L = lists:seq(1,N),
-    S = ["[1]" || _ <- L],
-    "[" ++ string:join(S,",") ++ "]".
+%% build_choice_list(N) ->
+%%     L = lists:seq(1,N),
+%%     S = ["[1]" || _ <- L],
+%%     "[" ++ string:join(S,",") ++ "]".
 
 
 %% evaluation of eval send
@@ -335,12 +329,12 @@ evals({token,T},_, _) ->
     L = get(token),
     put(token, L#{T => T}),
     T;
-evals([{self,Att}=Term], I,B) ->
+evals([{self,_}=Term], I,B) ->
     "[" ++ evals(Term, I,B) ++ "]";
-evals([{var,Att}=Term], I,B) ->
+evals([{var,_}=Term], I,B) ->
     "[" ++ evals(Term, I,B) ++ "]";
 
-evals([H|T]=List,I,B) when T =/= [] ->
+evals([_|T]=List,I,B) when T =/= [] ->
     S = [evals(Name,I,B) || Name <- List],
     "[" ++ string:join(S,",") ++ "]";
 
@@ -361,11 +355,6 @@ evals({intersect, L, R}, I,B) ->
 evals({union, L, R}, I,B) ->
     evals(L, I,B) ++ " or " ++ evals(R, I,B);
 evals({notmember, L, R}, I,B) ->
-    %% L1= evals(L, I,B),
-    %% R1 = evals(R, I,B),
-    %% C = "tumccounter" ++ integer_to_list(ets:update_counter(temp_name, c, 1, {c, 0})),
-    %% SubPred = build_subpred(L1,R1,C,"="),
-    %% ets:insert(temp_name, {C, SubPred}),
     "not " ++ evals({ismember, L, R}, I,B);
 evals({ismember, L, R}, I,B) ->
     L1= evals(L, I,B),
@@ -391,7 +380,7 @@ evalr("false",_, _,_) -> "false";
 evalr({att,Att}, _, _,_) -> Att ++ "[j]";
 evalr({param,T},I,B,_) ->
     "bound[$1]" ++ "[" ++ integer_to_list(I) ++ "][" ++ integer_to_list(proplists:get_value(T,B)) ++ "]";
-evalr({self,Att}, I,_,M) ->
+evalr({self,Att}, _I,_,_M) ->
     Att ++ "[$1]";
 evalr({'+',L,R}, I,B,M) ->
     evalr(L,I,B,M) ++ "+" ++ evalr(R,I,B,M);
@@ -407,10 +396,10 @@ evalr({token,T}, _,_,_) ->
     L = get(token),
     put(token, L#{T => T}),
     T;
-evalr([{self,Att}=Term], I,B,M) ->
+evalr([{self,_Att}=Term], I,B,M) ->
     "[" ++ evalr(Term, I,B,M) ++ "]";
 
-evalr([H|T]=List,I,B,M) when T =/= [] ->
+evalr([_|T]=List,I,B,M) when T =/= [] ->
     S = [evalr(Name,I,B,M) || Name <- List],
     "[" ++ string:join(S,",") ++ "]";
 
@@ -431,15 +420,11 @@ evalr({intersect, L, R}, I,B,M) ->
 evalr({union, L, R}, I,B,M) ->
     evalr(L, I, B,M) ++ " or " ++ evalr(R, I,B,M);
 evalr({notmember, L, R}, I,B,M) ->
-    L1= evalr(L, I,B,M),
-    R1 = evalr(R, I,B,M),
-    Temp = [L1 ++ "!=" ++ R1 ++"["++integer_to_list(Int)++"]" || Int <- lists:seq(0,7)],
-    Member = "(" ++ string:join(Temp, " and ") ++ ")";
+    "not " ++ evalr({ismember, L, R}, I,B,M);
 evalr({ismember, L, R}, I,B,M) ->
     L1= evalr(L, I,B,M),
     R1 = evalr(R, I,B,M),
-    Temp = [L1 ++ "=" ++ R1 ++"["++integer_to_list(Int)++"]" || Int <- lists:seq(0,7)],
-    Member = "(" ++ string:join(Temp, " and ") ++ ")";
+    L1 ++ " in " ++ R1;
 evalr({negation, T}, I, B,M) ->
     " not " ++ evalr(T,I,B,M);
 evalr({var,Name}, _, _, M) ->
@@ -467,6 +452,8 @@ build_outE([],_,_, S) -> %
 	++ "]",
     [Elem,Msg];
 build_outE([H|T], I, B, S) ->
+    catch ets:delete(temp_set),
+    ets:new(temp_set, [named_table]),
     build_outE(T,I,B,[evale(H,I,B)|S]).
 
 %% UMC does not support sending compound expressions
@@ -477,23 +464,25 @@ evale([E], I,B) -> % E is wrapped by a parenthesis
 evale({'+',L,R}, I,B) -> evale(L,I,B) ++ "+" ++ evale(R,I,B);
 evale({'*',L,R}, I,B) -> evale(L,I,B) ++ "*" ++ evale(R,I,B);
 evale({'-',L,R}, I,B) -> evale(L,I,B) ++ "-" ++ evale(R,I,B);
-evale({'--',L,R}, I,B) -> evale(L,I,B) ++ "-" ++ evale(R,I,B);
-evale({'++',L,R}, I,B) -> evale(L,I,B) ++ "+" ++ evale(R,I,B);
+evale({'--',L,R}, I,B) ->
+    evale(L,I,B) ++ "-" ++ evale(R,I,B);
+evale({'++',L,R}, I,B) ->
+    evale(L,I,B) ++ "+" ++ evale(R,I,B);
 evale({head,Name}, I,B) ->
     evale(Name,I,B) ++ ".head";
 evale({tail,Name}, I,B) ->
     evale(Name,I,B) ++ ".tail";
 evale({min,[Name]}, I,B) ->  % umc does not support (E).op yet !!
-    {"tmp: obj := " ++ evale(Name,I,B) ++ ";\n\t\t", "tmp.min"};
+    {"tmp: obj := " ++ evale(Name,I,B) ++ ";\n\t\t", "tmp.toset.min"};
 evale({min,Name}, I,B) ->
     evale(Name,I,B) ++ ".min";
 evale({max,[Name]}, I,B) ->  % umc does not support (E).op yet !!
-    {"tmp: obj := " ++ evale(Name,I,B) ++ ";\n\t\t", "tmp.max"};
+    {"tmp: obj := " ++ evale(Name,I,B) ++ ";\n\t\t", "tmp.toset.max"};
 evale({max,Name}, I,B) ->
     evale(Name,I,B) ++ ".max";
 
 evale({selector,List,Index}, I,B) -> evale(List,I,B) ++ "[" ++ evale(Index,I,B) ++ "]";
-evale({self,Att}, I,B) -> Att ++ "[$1]";
+evale({self,Att}, _I,_B) -> Att ++ "[$1]";
 evale({att,Att}, I,B) -> evale({self,Att}, I,B);
 evale({param,T}, I,B) ->
         "bound[$1]" ++ "[" ++ integer_to_list(I) ++ "][" ++ integer_to_list(proplists:get_value(T,B)) ++ "]";
@@ -503,9 +492,5 @@ evale({token,T}, _,_) ->
     L = get(token),
     put(token, L#{T => T}),
     T.
-
-
-remove_dups([])    -> [];
-remove_dups([{Fi,Se,Th,_}=H|T]) -> [H | [X || {Fi1,Se1,Th1,_}=X <- remove_dups(T), {Fi1,Se1,Th1} /= {Fi,Se,Th}]].
 
 print(X) -> io:format("~p~n", [X]).

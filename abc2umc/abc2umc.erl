@@ -124,12 +124,6 @@ eval({proc, _Args, Code}, CName, ProcessState, ActionState) ->
 eval({call, ProcName, _Args}, CName, ProcessState, ActionState = #state{entry = Evalue, pc_name = PcName, pc_index = PIndex}) ->
     %% retrieve the body (code) for this function (process)
     Code = ets:lookup_element(CName, ProcName, 2),
-%    io:format("ProcName ~p has code ~p, at pc_name ~p and index ~p ~n ",[ProcName, Code, PcName, PIndex]),
-%    PIndex = ets:lookup_element(CName,num_procs,2),
-    % v_name is a proplist [{x,0},{y,1}...] stored by some input action
-    M = ets:lookup_element(ProcessState, state, 2),
-%    Bindings = filter_bindings(Args, VarNames), %consider only those in Args
-    %% this process is characterized by this much of information
     ProcInstance = {ProcName, PcName, PIndex},
     Visited = ets:lookup_element(CName, visited, 2),
     %% check if the process instance has already visited?
@@ -246,7 +240,7 @@ eval({prefix, Left, {call, ProcName, _Args} = Right}, CName, ProcessState, Actio
 	    eval(Right, CName, ProcessState, ActionState#state{entry = Exit, parent = {}, aware = [], schedule = []})
     end;
 
-eval({prefix, Left, nil}, CName, ProcessState, ActionState) -> % Right is a nil process
+eval({prefix, Left, nil}, _CName, ProcessState, ActionState) -> % Right is a nil process
 %    io:format("Next is nil~n"),
     %% creating code for this action, and then proceeding with ProcName
     create_trans(Left, ProcessState, ActionState#state{nil = 1}),
@@ -260,7 +254,7 @@ eval({prefix, Left, Right}, CName, ProcessState, ActionState) -> % Right is a ch
 %% may be never get in here
 eval(nil, _, _, _) ->
     ok;
-eval(FINAL, CName, ProcessState, ActionState = #state{pc_index = PIndex}) ->
+eval(FINAL, CName, _ProcessState, ActionState) ->
     io:format("FINAL DOES NOT MATCH, ~p ~p ~p ",[FINAL, CName, ActionState]).
 
 
@@ -389,8 +383,6 @@ create_trans({{input, Pred, Vars}, Upd}, ProcessState,
     Map = ets:lookup_element(ProcessState,state,2),
     #{cnt := Cnt, v_name := Bound} = Map,
 
-    VIndex = lists:seq(0, length(Vars) - 1),
-%    Vars1 = lists:zip(Vars,VIndex),
 
     [BoundAssignments, NewBound, Msg] = bound_assignment(Bound, Vars, integer_to_list(PIndex)),
 
@@ -614,14 +606,14 @@ data_eval({bracket, E}) ->
     "[" ++ data_eval(E) ++ "]";
 data_eval(Other) -> Other.
 
-filter_bindings(Args, VarNames) -> % vars is the message, bindings is
-    %% simplest case, Vars \in Bindings
-    Name = [X || {_,X} <- Args],
-    L = [{X,proplists:get_value(X,VarNames)} || X <- Name].
+%% filter_bindings(Args, VarNames) -> % vars is the message, bindings is
+%%     %% simplest case, Vars \in Bindings
+%%     Name = [X || {_,X} <- Args],
+%%     L = [{X,proplists:get_value(X,VarNames)} || X <- Name].
 
-select_bindings(FormalArgs, ActualArgs) ->
-    Vals = [I || {_,I} <- ActualArgs],
-    lists:zip(FormalArgs,Vals).
+%% select_bindings(FormalArgs, ActualArgs) ->
+%%     Vals = [I || {_,I} <- ActualArgs],
+%%     lists:zip(FormalArgs,Vals).
 
 %% previous vars [{x,0}, {y,1}, ...]
 %% new vars  = [x, z,t,w],
