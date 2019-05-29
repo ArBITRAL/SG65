@@ -16,3 +16,5 @@ b. AF (FINAL and not has_attr(*,v))
 ---> all component do not have attribute attr with value v
 
 For the graph colouring example, please take a look at color.properties.txt file
+
+For use of UMC, please consult the website: http://fmtlab.isti.cnr.it/umc/V4.8/umc.html
