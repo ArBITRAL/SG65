@@ -16,4 +16,6 @@ The next step is to use m4 command to produce an actual UMC model
 
 > m4 foo.umc > filename.umc
 
-# Once the model is obtained, the next step is to use UMC model checker for analysis
+Once the model is obtained, one can use UMC model checker for analysis
+
+For use of UMC, please consult the website: http://fmtlab.isti.cnr.it/umc/V4.8/umc.html
