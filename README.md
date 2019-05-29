@@ -6,13 +6,7 @@
 
 - The abc specifications can be found in the examples folder.
 
-### In our approach, we start from abc specifications
-
-abc2umc generates the umc model for formal verification
-
-abc2abel generates erlang modules for actual executions
-
 ### Requirements:
 
-- Erlang/OTP >= 20
-- m4 macro
+1. Erlang/OTP >= 20
+2. m4 macro
