@@ -206,13 +206,16 @@ handle_event({call, {Pid, _} = From},
 	    %% end,
 		    gen_statem:reply(From, {Con,[]}),
 		    Status2 = maps:remove(Pid, Status),
-		    case NumProcs == maps:size(NewStatus) andalso not gb_trees:is_empty(Queue) of %% the second condition is to save some computation power due to doing dispatching without any message yet
-		    	true -> %% last send can trigger dispatching a pending message
-		    	    {next_state, {NewEnv, Sending}, Data#data{status = Status2, mid = -1, counter = Counter + 1},
-		    	     [{next_event, internal, dispatch}]};
-		    	false -> %% otherwise
-			    {next_state, {NewEnv, Sending}, Data#data{status = Status2, mid = -1, counter = Counter + 1}}
-			end;
+		    %% case NumProcs == maps:size(NewStatus) andalso not gb_trees:is_empty(Queue) of %% the second condition is to save some computation power due to doing dispatching without any message yet
+		    %% 	true -> %% last send can trigger dispatching a pending message
+		    %% 	    {next_state, {NewEnv, Sending}, Data#data{status = Status2, mid = -1, counter = Counter + 1},
+		    %% 	     [{next_event, internal, dispatch}]};
+		    %% 	false -> %% otherwise
+		    %% 	    {next_state, {NewEnv, Sending}, Data#data{status = Status2, mid = -1, counter = Counter + 1}}
+		    %% 	end;
+		    %% if sucessfully send, then relies on environment change to retry deffered actions if any
+		    {next_state, {NewEnv, Sending}, Data#data{status = Status2, mid = -1, counter = Counter + 1}};
+
 		false ->
 		    case NumProcs == maps:size(NewStatus) andalso not gb_trees:is_empty(Queue) of
 			true -> %% last send can trigger dispatching a pending message
@@ -269,13 +272,17 @@ handle_event({call, {Pid,_} = From}, {choice, BehList}, {Env, Sending}, Data = #
 					 end, Env, Update),
 		    gen_statem:reply(From, {Con,[]}),
 		    Status2 = maps:remove(Pid,Status),
-		    case maps:size(NewStatus) == NumProcs andalso not gb_trees:is_empty(Queue) of
-		    	true ->
-		    	    {next_state, {NewEnv, Sending}, Data#data{status = Status2},
-		    	     [{next_event, internal, dispatch}]};
-		    	false ->
-		    	    {next_state, {NewEnv, Sending}, Data#data{status = Status2}}
-		    end;
+		    %% case maps:size(NewStatus) == NumProcs andalso not gb_trees:is_empty(Queue) of
+		    %% 	true ->
+		    %% 	    {next_state, {NewEnv, Sending}, Data#data{status = Status2},
+		    %% 	     [{next_event, internal, dispatch}]};
+		    %% 	false ->
+		    %% 	    {next_state, {NewEnv, Sending}, Data#data{status = Status2}}
+		    %% end;
+		    %% fix the semantics of sending
+		    %% if sucessfully send, then relies on environment change to retry deffered actions if any
+		    {next_state, {NewEnv, Sending}, Data#data{status = Status2}};
+
 	    	[{{_, _, Msg, Pred, Update}, Con} | _] ->   %% pick the first sending action, followed by an update
 	    	    FreshId =  if Mid == -1 ->
 				       abel_inf:request_id(Agent);
@@ -298,14 +305,17 @@ handle_event({call, {Pid,_} = From}, {choice, BehList}, {Env, Sending}, Data = #
 	    					 end, Env, Update),
 	    		    gen_statem:reply(From, {Con,[]}),
 	    		    Status2 = maps:remove(Pid,Status),
-	    		    case maps:size(NewStatus) == NumProcs andalso not gb_trees:is_empty(Queue) of
-	    		    	true ->
-	    		    	    {next_state, {NewEnv, Sending}, Data#data{status = Status2, mid = -1, counter = Counter + 1},
-	    		    	     [{next_event, internal, dispatch}]};
-	    		    	%% last send can trigger discarding a message
-	    		    	false ->
-	    			    {next_state, {NewEnv, Sending}, Data#data{status = Status2, mid = -1, counter = Counter + 1}}
-			    end;
+	    		    %% case maps:size(NewStatus) == NumProcs andalso not gb_trees:is_empty(Queue) of
+	    		    %% 	true ->
+	    		    %% 	    {next_state, {NewEnv, Sending}, Data#data{status = Status2, mid = -1, counter = Counter + 1},
+	    		    %% 	     [{next_event, internal, dispatch}]};
+	    		    %% 	%% last send can trigger discarding a message
+	    		    %% 	false ->
+	    		    %% 	    {next_state, {NewEnv, Sending}, Data#data{status = Status2, mid = -1, counter = Counter + 1}}
+			    %% end;
+			    %% fix the semantics of sending
+			    %% if sucessfully send, then relies on environment change to retry deffered actions if any
+			    {next_state, {NewEnv, Sending}, Data#data{status = Status2, mid = -1, counter = Counter + 1}};
 	    		false ->
 	    		    case maps:size(NewStatus) == NumProcs andalso not gb_trees:is_empty(Queue) of
 	    		    	true ->
