@@ -72,7 +72,6 @@ build_rpred(OtherAtts, Pred, M) ->
 %    "fun(_LclE, _M, _RmtE) -> msg_size(_M) == " ++ integer_to_list(length(M)) ++ " andalso " ++ evalr(OtherAtts, Pred, M) ++ " end".
     "fun(_LclE, _M, _RmtE) -> " ++ evalr(OtherAtts, Pred, M) ++ " end".
 
-
 evall(_,{self,Att},_M) ->
     "att(" ++ Att ++ ",_LclE)";
 evall(_,{param,Att},_M) ->
@@ -102,12 +101,15 @@ evall(Atts,{'-',L,R},_M) -> evall(Atts,L,_M) ++ " - " ++ evall(Atts,R,_M);
 evall(Atts,{'*',L,R},_M) -> evall(Atts,L,_M) ++ " * " ++ evall(Atts,R,_M);
 evall(Atts,{concat,L,R},_M) ->
     evall(Atts,L,_M) ++ " + "  ++ evall(Atts,R,_M);
-evall(Atts,{assign, {literal, L}, R},_M) when _M =/= []->
+evall(Atts,{assign, {literal, L}, R},_M) when _M =/= [] ->
     "{" ++ L ++ ", fun(_LclE,_M) -> " ++ evall(Atts,R,_M) ++ " end}";
-evall(Atts,{assign, {literal, L}, R},_M) when _M == []->
+evall(Atts,{assign, {literal, L}, R},_M) ->
     "{" ++ L ++ ", fun(_LclE) -> " ++ evall(Atts,R,_M) ++ " end}";
-%% evall(Atts,{assign, {self, L}, R},_M) when ->
-%%      "{" ++ L ++ ", fun(_LclE) -> " ++ evall(Atts,R,_M) ++ " end}";
+evall(Atts,{assign, L, R},_M)  ->
+     "{" ++ evall(Atts,L,_M) ++ ", fun(_LclE) -> " ++ evall(Atts,R,_M) ++ " end}";
+evall(Atts,{selector, L, I},_M)  ->
+     {L1, I1, C} = flatten(L,I),
+     "user_code:selector" ++ integer_to_list(C) ++ "(" ++ evall(Atts,L1,_M) ++ "," ++ string:join([evall(Atts,E,_M) || E <- I1], ",") ++ ")";
 evall(Atts,{func,Name,L},_M) -> "user_code:" ++ Name ++ "(" ++ string:join([evall(Atts,C,_M) || C <- L],",") ++ ")";
 evall(Atts,{'++',L,R},_M) ->
     L1 = evall(Atts,L,_M),
@@ -157,6 +159,8 @@ evall(Atts,{literal, Name},_M) ->
 		    "msg(" ++ integer_to_list(I) ++ ",_M)"
 	    end
     end.
+
+
 
 
 %% evaluation of eval send
@@ -298,7 +302,9 @@ evalr(OtherAtts,{literal,Name}, M) ->
 		I ->
 		    "msg(" ++ integer_to_list(I) ++ ",_M)"
 	    end
-    end.
+    end;
+evalr(OtherAtts,{func,Name,L},_M) -> "user_code:" ++ Name ++ "(" ++ string:join([evalr(OtherAtts,C,_M) || C <- L],",") ++ ")".
+
 
 build_msg(Exps) ->
     build_msg(Exps,[]).
@@ -326,4 +332,16 @@ evale({literal,T}) ->
 evale({token,T}) -> lists:flatten(io_lib:format("~p",[list_to_atom(T)]));
 evale({const,C}) -> C;
 evale({minusconst,C}) -> "-" ++ C;
-evale({func,Name,L}) -> "user_code:" ++ Name ++ "(" ++ string:join([evale(C) || C <- L],",") ++ ")".
+evale({func,Name,L}) -> "user_code:" ++ Name ++ "(" ++ string:join([evale(C) || C <- L],",") ++ ")";
+evale({selector, L, I})  ->
+    {L1,I1,C} = flatten(L,I),
+    "user_code:selector" ++ integer_to_list(C) ++ "(" ++ evale(L1) ++ "," ++ string:join([evale(E) || E <- I1],",") ++ ")".
+
+
+%% helper function
+flatten(L,I) -> flatten(L,[I],0).
+
+flatten({selector,L,I1},I,C) ->
+    flatten(L, [I1|I], C + 1);
+flatten(L,I,C) ->
+    {L,I,C+1}. % includes selector of the caller
