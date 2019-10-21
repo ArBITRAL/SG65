@@ -2,15 +2,20 @@
 AG [send(Cust1,acms)] AF {send(B1,finish)} true  ---> umc returns true
 AG [send(Cust1,acms)] AF {receive(Cust1,finish)} true  --> umc returns true
 
-%% In final states, there is no possibility that both customers remain with no hotel booked
+%% A customer that sends a “book” message will eventually receives either a “confirm” or a “toolate” message
+AG [send(Cust1,acms)] AF {receive(Cust1,confirm) or receive(Cust1,toolate)} true
 
+%% If a customer receives a “toolate” message, it will react by sending another “acms” message
+AG [receive(Cust1,toolate)] AF {send(Cust1,acms)} true
+
+%% In final states, there is no possibility that both customers remain with no hotel booked
 AF (FINAL and not (has favh(Cust1,undef) and has favh(Cust2,undef))) --> umc returns true
+
+%% A falsity example
 
 AF (FINAL and not has_favh(Cust1,undef)) --> umc returns false
 
-
 %% Counter example
-
 The formula:
   AF (FINAL and not has_favh(Cust1,undef))
 
