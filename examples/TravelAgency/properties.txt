@@ -1,0 +1,51 @@
+%% If a customer sends an inquiry message, the broker will eventually send a finish message or the same customer will receive it
+AG [send(Cust1,acms)] AF {send(B1,finish)} true  ---> umc returns true
+AG [send(Cust1,acms)] AF {receive(Cust1,finish)} true  --> umc returns true
+
+%% In final states, there is no possibility that both customers remain with no hotel booked
+
+AF (FINAL and not (has favh(Cust1,undef) and has favh(Cust2,undef))) --> umc returns true
+
+AF (FINAL and not has_favh(Cust1,undef)) --> umc returns false
+
+
+%% Counter example
+
+The formula:
+  AF (FINAL and not has_favh(Cust1,undef))
+
+   is FOUND_FALSE in State C1
+
+This happens because:
+  C1 --> C2  {} /* OO:: - /,pc:=[[1,1],[1,1],[1,1,1,1,1,1,1],[1,1,1,1],[1,1,1,1],[1,1,1,1]]; OO.allowsend(0); OO.allowsend(1); OO.allowsend(2); OO.allowsend(3); OO.allowsend(4); OO.allowsend(5) */
+  C2 --> C3  {send(Cust1,[acms,1,1,5,500])} /* OO:: allowsend(0) /,tmp#2[0]:=0; tmp#2[1]:=0; tmp#2[2]:=1; tmp#2[3]:=0; tmp#2[4]:=0; tmp#2[5]:=0; receiving:=true; OO.broadcast([0,0,1],[acms,1,1,5,500],0); OUT.sending(Cust1,[acms,1,1,5,500]); send[0]:=false; pc[0][0]:=2 */
+  C3 --> C5  {receive(B1,[acms,1,1,5,500])} /* OO:: broadcast([0,0,1],[acms,1,1,5,500],0) /,receiving:=false; OO.allowsend(0); pc[0][0]:=1; bound[0][0]:=0; bound[2][0][0]:=acms; bound[2][0][1]:=1; bound[2][0][2]:=1; bound[2][0][3]:=5; bound[2][0][4]:=500; counter[2][1]:=0; OUT.received(B1,[acms,1,1,5,500]); pc[2][0]:=2 */
+  C5 --> C7  {send(Cust2,[acms,2,1,5,500])} /* OO:: allowsend(1) /,tmp#2[0]:=0; tmp#2[1]:=0; tmp#2[2]:=1; tmp#2[3]:=0; tmp#2[4]:=0; tmp#2[5]:=0; receiving:=true; OO.broadcast([0,0,1],[acms,2,1,5,500],1); OUT.sending(Cust2,[acms,2,1,5,500]); send[1]:=false; pc[1][0]:=2 */
+  C7 --> C17  {receive(B1,[acms,2,1,5,500])} /* OO:: broadcast([0,0,1],[acms,2,1,5,500],1) /,receiving:=false; OO.allowsend(1); pc[1][0]:=1; bound[1][0]:=0; bound[2][4][0]:=acms; bound[2][4][1]:=2; bound[2][4][2]:=1; bound[2][4][3]:=5; bound[2][4][4]:=500; counter[2][2]:=0; OUT.received(B1,[acms,2,1,5,500]); pc[2][4]:=2 */
+  C17 --> C18  {send(B1,[acms,1,5,1])} /* OO:: allowsend(2) /,tmp#2[0]:=0; tmp#2[1]:=0; tmp#2[2]:=0; tmp#2[3]:=1; tmp#2[4]:=1; tmp#2[5]:=0; receiving:=true; OO.broadcast([0,0,0,1,1],[acms,1,5,1],2); OUT.sending(B1,[acms,1,5,1]); pc[2][0]:=3 */
+  C18 --> C20  {receive(H1,[acms,1,5,1]), receive(H2,[acms,1,5,1])} /* OO:: broadcast([0,0,0,1,1],[acms,1,5,1],2) /,receiving:=false; OO.allowsend(2); pc[2][0]:=4; bound[3][0][0]:=acms; bound[3][0][1]:=1; bound[3][0][2]:=5; bound[3][0][3]:=1; OUT.received(H1,[acms,1,5,1]); pc[3][0]:=2; bound[4][0][0]:=acms; bound[4][0][1]:=1; bound[4][0][2]:=5; bound[4][0][3]:=1; OUT.received(H2,[acms,1,5,1]); pc[4][0]:=2 */
+  C20 --> C24  {send(B1,[acms,2,5,1])} /* OO:: allowsend(2) /,tmp#2[0]:=0; tmp#2[1]:=0; tmp#2[2]:=0; tmp#2[3]:=1; tmp#2[4]:=1; tmp#2[5]:=0; receiving:=true; OO.broadcast([0,0,0,1,1],[acms,2,5,1],2); OUT.sending(B1,[acms,2,5,1]); pc[2][4]:=3 */
+  C24 --> C263  {receive(H1,[acms,2,5,1]), receive(H2,[acms,2,5,1])} /* OO:: broadcast([0,0,0,1,1],[acms,2,5,1],2) /,receiving:=false; OO.allowsend(2); pc[2][4]:=4; bound[3][1][0]:=acms; bound[3][1][1]:=2; bound[3][1][2]:=5; bound[3][1][3]:=1; OUT.received(H1,[acms,2,5,1]); pc[3][1]:=2; bound[4][1][0]:=acms; bound[4][1][1]:=2; bound[4][1][2]:=5; bound[4][1][3]:=1; OUT.received(H2,[acms,2,5,1]); pc[4][1]:=2 */
+  C263 --> C265  {send(H1,[offer,2,1,1,400])} /* OO:: allowsend(3) /,tmp#2[0]:=0; tmp#2[1]:=0; tmp#2[2]:=1; tmp#2[3]:=0; tmp#2[4]:=0; tmp#2[5]:=0; receiving:=true; OO.broadcast([0,0,1],[offer,2,1,1,400],3); OUT.sending(H1,[offer,2,1,1,400]); pc[3][1]:=3 */
+  C265 --> C316  {receive(B1,[offer,2,1,1,400])} /* OO:: broadcast([0,0,1],[offer,2,1,1,400],3) /,bound[2][5]:=[acms,2,1,5,500]; bound[2][5][0]:=offer; bound[2][5][5]:=2; bound[2][5][6]:=1; bound[2][5][2]:=1; bound[2][5][7]:=400; OUT.received(B1,[offer,2,1,1,400]); pc[2][5]:=2; receiving:=false; OO.allowsend(3); pc[3][1]:=4; bound[3][1]:=0; pc[3][1]:=0 */
+  C316 --> C317  {send(B1,[offer,1,1,400,1])} /* OO:: allowsend(2) /,tmp#2[0]:=0; tmp#2[1]:=1; tmp#2[2]:=0; tmp#2[3]:=0; tmp#2[4]:=0; tmp#2[5]:=0; receiving:=true; OO.broadcast([0,1],[offer,1,1,400,1],2); OUT.sending(B1,[offer,1,1,400,1]); counter[2][2]:=1; pc[2][5]:=3 */
+  C317 --> C321  {receive(Cust2,[offer,1,1,400,1])} /* OO:: broadcast([0,1],[offer,1,1,400,1],2) /,bound[1][1][0]:=offer; bound[1][1][1]:=1; bound[1][1][2]:=1; bound[1][1][3]:=400; bound[1][1][4]:=1; price[1]:=400; favh[1]:=1; ref[1]:=1; OUT.received(Cust2,[offer,1,1,400,1]); pc[1][1]:=1; bound[1][1]:=0; receiving:=false; OO.allowsend(2); pc[2][5]:=4; bound[2][5]:=0; pc[2][5]:=0 */
+  C321 --> C323  {send(H2,[nooffer,1])} /* OO:: allowsend(4) /,tmp#2[0]:=0; tmp#2[1]:=0; tmp#2[2]:=1; tmp#2[3]:=0; tmp#2[4]:=0; tmp#2[5]:=0; receiving:=true; OO.broadcast([0,0,1],[nooffer,1],4); OUT.sending(H2,[nooffer,1]); pc[4][0]:=5 */
+  C323 --> C325  {receive(B1,[nooffer,1])} /* OO:: broadcast([0,0,1],[nooffer,1],4) /,bound[2][3]:=[acms,1,1,5,500]; bound[2][3][0]:=nooffer; bound[2][3][5]:=1; counter[2][1]:=1; OUT.received(B1,[nooffer,1]); pc[2][3]:=1; bound[2][3]:=0; receiving:=false; OO.allowsend(4); pc[4][0]:=6; bound[4][0]:=0; pc[4][0]:=0 */
+  C325 --> C327  {send(H2,[nooffer,2])} /* OO:: allowsend(4) /,tmp#2[0]:=0; tmp#2[1]:=0; tmp#2[2]:=1; tmp#2[3]:=0; tmp#2[4]:=0; tmp#2[5]:=0; receiving:=true; OO.broadcast([0,0,1],[nooffer,2],4); OUT.sending(H2,[nooffer,2]); pc[4][1]:=5 */
+  C327 --> C1699  {receive(B1,[nooffer,2])} /* OO:: broadcast([0,0,1],[nooffer,2],4) /,bound[2][6]:=[acms,2,1,5,500]; bound[2][6][0]:=nooffer; bound[2][6][5]:=2; counter[2][2]:=2; OUT.received(B1,[nooffer,2]); pc[2][6]:=1; bound[2][6]:=0; receiving:=false; OO.allowsend(4); pc[4][1]:=6; bound[4][1]:=0; pc[4][1]:=0 */
+  C1699 --> C1700  {send(B1,[finish])} /* OO:: allowsend(2) /,bound[2][6]:=[acms,2,1,5,500]; tmp#2[0]:=0; tmp#2[1]:=1; tmp#2[2]:=0; tmp#2[3]:=0; tmp#2[4]:=0; tmp#2[5]:=0; receiving:=true; OO.broadcast([0,1],[finish],2); OUT.sending(B1,[finish]); pc[2][6]:=5 */
+  C1700 --> C1702  {receive(Cust2,[finish])} /* OO:: broadcast([0,1],[finish],2) /,bound[1][1][0]:=finish; OUT.received(Cust2,[finish]); pc[1][1]:=2; receiving:=false; OO.allowsend(2); pc[2][6]:=6; bound[2][6]:=0; pc[2][6]:=0 */
+  C1702 --> C1703  {send(Cust2,[book,2,5,1])} /* OO:: allowsend(1) /,tmp#2[0]:=0; tmp#2[1]:=0; tmp#2[2]:=0; tmp#2[3]:=1; tmp#2[4]:=0; tmp#2[5]:=0; receiving:=true; OO.broadcast([0,0,0,1],[book,2,5,1],1); OUT.sending(Cust2,[book,2,5,1]); pc[1][1]:=3 */
+  C1703 --> C1705  {receive(H1,[book,2,5,1])} /* OO:: broadcast([0,0,0,1],[book,2,5,1],1) /,receiving:=false; OO.allowsend(1); pc[1][1]:=4; bound[3][2][0]:=book; bound[3][2][1]:=2; bound[3][2][2]:=5; bound[3][2][3]:=1; OUT.received(H1,[book,2,5,1]); pc[3][2]:=2 */
+  C1705 --> C1708  {send(H1,[confirm])} /* OO:: allowsend(3) /,tmp#2[0]:=0; tmp#2[1]:=1; tmp#2[2]:=0; tmp#2[3]:=0; tmp#2[4]:=0; tmp#2[5]:=0; receiving:=true; OO.broadcast([0,1],[confirm],3); OUT.sending(H1,[confirm]); room[3][5]:=0; pc[3][2]:=3 */
+  C1708 --> C1709  {receive(Cust2,[confirm])} /* OO:: broadcast([0,1],[confirm],3) /,bound[1][1][0]:=confirm; OUT.received(Cust2,[confirm]); pc[1][1]:=5; bound[1][1]:=0; pc[1][1]:=0; receiving:=false; OO.allowsend(3); pc[3][2]:=4; bound[3][2]:=0; pc[3][2]:=0 */
+  C1709 --> C1710  {send(H1,[nooffer,1])} /* OO:: allowsend(3) /,tmp#2[0]:=0; tmp#2[1]:=0; tmp#2[2]:=1; tmp#2[3]:=0; tmp#2[4]:=0; tmp#2[5]:=0; receiving:=true; OO.broadcast([0,0,1],[nooffer,1],3); OUT.sending(H1,[nooffer,1]); pc[3][0]:=5 */
+  C1710 --> C1711  {receive(B1,[nooffer,1])} /* OO:: broadcast([0,0,1],[nooffer,1],3) /,bound[2][3]:=[acms,1,1,5,500]; bound[2][3][0]:=nooffer; bound[2][3][5]:=1; counter[2][1]:=2; OUT.received(B1,[nooffer,1]); pc[2][3]:=1; bound[2][3]:=0; receiving:=false; OO.allowsend(3); pc[3][0]:=6; bound[3][0]:=0; pc[3][0]:=0 */
+  C1711 --> C1712  {send(B1,[finish])} /* OO:: allowsend(2) /,bound[2][3]:=[acms,1,1,5,500]; tmp#2[0]:=1; tmp#2[1]:=0; tmp#2[2]:=0; tmp#2[3]:=0; tmp#2[4]:=0; tmp#2[5]:=0; receiving:=true; OO.broadcast([1],[finish],2); OUT.sending(B1,[finish]); pc[2][3]:=5 */
+  C1712 --> C1713  {receive(Cust1,[finish])} /* OO:: broadcast([1],[finish],2) /,bound[0][1][0]:=finish; OUT.received(Cust1,[finish]); pc[0][1]:=2; receiving:=false; OO.allowsend(2); pc[2][3]:=6; bound[2][3]:=0; pc[2][3]:=0 */
+  C1713 --> C1714  {} /* OO:: allowsend(0) /,send[0]:=true; OO.allowsend(0); pc[0][1]:=1; bound[0][1]:=0 */
+  C1714 --> C1715  {send(Cust1,[acms,1,1,5,500])} /* OO:: allowsend(0) /,tmp#2[0]:=0; tmp#2[1]:=0; tmp#2[2]:=1; tmp#2[3]:=0; tmp#2[4]:=0; tmp#2[5]:=0; receiving:=true; OO.broadcast([0,0,1],[acms,1,1,5,500],0); OUT.sending(Cust1,[acms,1,1,5,500]); send[0]:=false; pc[0][0]:=2 */
+  C1715 --> C1716  {} /* OO:: broadcast([0,0,1],[acms,1,1,5,500],0) /,receiving:=false; OO.allowsend(0); pc[0][0]:=1; bound[0][0]:=0 */
+(C1716 is final)
+In all states of the above full  path the subformula: FINAL and not has_favh(Cust1,undef) Is Not Satisfied.
