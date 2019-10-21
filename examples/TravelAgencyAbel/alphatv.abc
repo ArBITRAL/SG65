@@ -1,0 +1,72 @@
+component Cust
+	  attributes: cid, loc, day, price, dist, stype, favh, ref, send
+	  observables: cid, favh
+	  behaviour:
+	  	let {
+	    F := <send = tt>('acms',this.cid,this.loc,this.day,this.price)@(stype = 'broker').[send := ff]F
+
+	    A := (x = 'offer'and this.price >= p and (distance(this.loc,l) <= this.dist))(x,h,l,p,b).
+	      	 [price := p, favh := h, ref := b]A
+		 +
+	         (x = 'finish')(x,z).B
+
+	    B := <favh /= 'undef'>('book',this.cid,this.day,this.ref)@(hid = this.favh).
+		 ( (x = 'confirm')(x).nil
+		   +
+		   (x = 'toolate')(x).[send := tt]A
+		 )
+		 +
+		 <favh = 'undef'>()@(false).[send := tt]A
+	}
+	init
+	    F | A
+
+end
+
+
+component Broker
+	  attributes: bid, stype, nh, counter, nh
+	  observables: bid
+	  behaviour:
+	let {
+
+	    P := (x = 'acms')(x,c,l,d,p).[counter := zero(counter,c)](F | P)
+	    F := ('acms',c,d,this.bid)@(stype = 'hotel' and locality = l).(A | U | R)
+
+	    A := <counter[c] < nh[l]>(x = 'offer' and cust = c and op <= p)(x,cust,h,l,op).(S | A)
+
+	    S := ('offer',h,l,op,this.bid)@(cid = c).[counter := inc(counter,c)]nil
+
+	    U := <counter[c] < nh[l]>(x = 'offer' and op > p)(x,cust,h,l,op).[counter := inc(counter,c)]U
+	        + <counter[c] < nh[l]>(x = 'nooffer' and cust = c)(x,cust).[counter := inc(counter,c)]U
+
+            R :=  <counter[c] = nh[l]>('finish',c)@(cid = c).nil
+
+	    C := (x = 'comission' and stype = 'hotel')(x).nil
+	}
+	init
+	    P | C
+end
+
+
+
+component Hotel
+	   attributes: hid, stype, locality, room, price
+	   observables: hid
+	   behaviour:
+	let {
+	    P := (x = 'acms')(x,c,d,b).(H | P)
+	    H := <room[d] > 0>('offer',c,this.hid,this.locality,this.price[d][b])@(bid = b).nil
+	      +
+	        <room[d] <= 0>('nooffer',c)@(bid = b).nil
+
+           B :=  (x = 'book')(x,c,d,refc).(C | B)
+
+	   C := <room[d] > 0>('confirm')@(cid = c).[room := dec(room,d)]('comission')@(bid = refc).nil
+	      +
+		<room[d] = 0>('toolate')@(cid = c).nil
+	}
+	init
+		P | B
+
+end
